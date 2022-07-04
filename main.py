@@ -1,25 +1,56 @@
-from typing import BinaryIO
-
-from telebot import apihelper
 import telebot
 import random
 from telebot import types
-
+import wikipedia, re
 import config
 import tokenn
+import time
+import datetime
 
 bot = telebot.TeleBot(tokenn.TOKEN)
+
+wikipedia.set_lang("ru")
+# Чистим текст статьи в Wikipedia и ограничиваем его тысячей символов
+def getwiki(s):
+    try:
+        ny = wikipedia.page(s)
+        # Получаем первую тысячу символов
+        wikitext=ny.content[:1000]
+        # Разделяем по точкам
+        wikimas=wikitext.split('.')
+        # Отбрасываем всЕ после последней точки
+        wikimas = wikimas[:-1]
+        # Создаем пустую переменную для текста
+        wikitext2 = ''
+        # Проходимся по строкам, где нет знаков «равно» (то есть все, кроме заголовков)
+        for x in wikimas:
+            if not('==' in x):
+                    # Если в строке осталось больше трех символов, добавляем ее к нашей переменной и возвращаем утерянные при разделении строк точки на место
+                if(len((x.strip()))>3):
+                   wikitext2=wikitext2+x+'.'
+            else:
+                break
+        # Теперь при помощи регулярных выражений убираем разметку
+        wikitext2=re.sub('\([^()]*\)', '', wikitext2)
+        wikitext2=re.sub('\([^()]*\)', '', wikitext2)
+        wikitext2=re.sub('\{[^\{\}]*\}', '', wikitext2)
+        # Возвращаем текстовую строку
+        return wikitext2
+    # Обрабатываем исключение, которое мог вернуть модуль wikipedia при запросе
+    except Exception as e:
+        return 'В энциклопедии нет информации об этом'
 
 
 @bot.message_handler(commands=['start'])
 def start(mess):
-    with open('dino_work.webp', 'rb') as stk1:
-        bot.send_sticker(mess.chat.id, stk1)
+    with open('add_files\dino_work.webp', 'rb') as st:
+        bot.send_sticker(mess.chat.id, st)
+    time_now = datetime.datetime.now()
     markup = types.InlineKeyboardMarkup(row_width=2)
     item1 = types.InlineKeyboardButton('Русский 🇷🇺', callback_data='rus')
     item2 = types.InlineKeyboardButton('English 🇬🇧', callback_data='eng')
     markup.add(item1, item2)
-    bot.send_message(mess.chat.id, f'<b>Hi {mess.from_user.first_name}</b>\nClick '
+    bot.send_message(mess.chat.id, f'<b>Hi {mess.from_user.first_name}</b>\nСейчас: {time_now}\nClick '
                                    f'/functions to see my features\n<b>Choose the language⬇</b>',
                      parse_mode='html', reply_markup=markup)
 
@@ -30,7 +61,7 @@ def func(mess):
     item1 = types.KeyboardButton('/search')
     item2 = types.KeyboardButton('/random_game')
     item3 = types.KeyboardButton('/help')
-    item4 = types.KeyboardButton('/')
+    item4 = types.KeyboardButton('/wiki')
     item5 = types.KeyboardButton('/')
     item6 = types.KeyboardButton('/about_us')
     markup.add(item1, item2, item3, item4, item5, item6)
@@ -43,10 +74,18 @@ def about(message):
     item1 = types.InlineKeyboardButton('Наш GitHub', url='https://github.com/AlexSvem')
     item2 = types.InlineKeyboardButton('Наш сайт[beta]', url='https://yandex.com/')
     item3 = types.InlineKeyboardButton('Наш Vk', url='https://vk.com/')
-    markup.add(item1, item2, item3)
+    item4 = types.InlineKeyboardButton('Наш Тг канал', url='https://t.me/sibna_apps')
+    markup.add(item1, item2, item3, item4)
     bot.send_message(message.chat.id,
-                     'Я <b>https://t.me/Sib.help</b> созданный командой Sibna для помощи в ознакомлении с нашими новыми сервисами',
+                     'Я <b>Sib.help</b> созданный командой Sibna для помощи в ознакомлении с нашими новыми сервисами',
                      parse_mode='html', reply_markup=markup)
+
+
+@bot.message_handler(commands=['wiki'])
+def get_wiki(message):
+    bot.send_message(message.chat.id, 'Пришлите мне слово которое хотите найти в wiki')
+    time.sleep(15)
+    bot.send_message(message.chat.id, getwiki(message.text))
 
 
 @bot.message_handler(content_types=['text'])
@@ -82,6 +121,7 @@ def tolk(message):
             bot.send_sticker(message.chat.id, stk4)
 
 
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     try:
@@ -107,7 +147,7 @@ def callback_inline(call):
 
 @bot.message_handler(content_types=['sticker'])
 def sticker(msg):
-    d = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    d = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     r_stk = random.choice(d)
     try:
@@ -139,6 +179,8 @@ def sticker(msg):
             bot.send_sticker(msg.chat.id, config.stk13)
         elif r_stk == 14:
             bot.send_sticker(msg.chat.id, config.stk14)
+        elif r_stk == 15:
+            bot.send_sticker(msg.chat.id, config.stk15)
     except Exception:
         bot.send_message(msg.chat.id, 'Что-то пошло не так')
 
